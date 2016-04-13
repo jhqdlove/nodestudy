@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+	<title>promise</title>
+	<style>
+	div{
+		width:100px;
+		height:100px;
+		border-radius: 50px;
+		background-color: red;
+	}
+	</style>
+</head>
+<body>
+<div style="margin-left:0px;"></div>
+<div style="margin-left:0px;"></div>
+<div style="margin-left:0px;"></div>
+</body>
+<script>
+var balls = document.getElementsByTagName("div");
+console.log(balls.length);
+var ball1 = balls[0];
+var ball2 = balls[1];
+var ball3 = balls[2];
+
+
+/*不用promise时的异步调用*/
+function animate(ball,distance,callback){
+	setTimeout(function(){
+		var marginLeft = parseInt(ball.style.marginLeft,10);
+		console.log(ball.style.marginLeft);
+		if(marginLeft>=distance){
+			callback&&callback();//First it checks to ensure that callback is defined (more accurately, that it is a truthy value). Then, if it is, it calls that function.
+		}else{
+			 marginLeft++;
+			 ball.style.marginLeft = marginLeft+'px';
+			 animate(ball,distance,callback);
+		}
+	},13);	
+}
+
+animate(ball1,200,function(){
+	animate(ball2,200,function(){
+		animate(ball3,200);
+	});
+});
+
+/*使用promise的*/
+var Promise = window.Promise;
+
+function promise_animate(ball,distance){
+	return new Promise(function(resolve,reject){
+		function _animate(){
+			setTimeout(function(){
+			var marginLeft = parseInt(ball.style.marginLeft,10);
+			console.log(ball.style.marginLeft);
+			if(marginLeft>=distance){
+				resolve&&resolve();
+			}else{
+				 marginLeft++;
+				 ball.style.marginLeft = marginLeft+'px';
+				 _animate();
+			}
+		},13);	
+		};
+		 _animate();
+	});
+}
+
+promise_animate(ball1,400)
+	.then(function(){promise_animate(ball2,400);})
+		.then(function(){promise_animate(ball3,400);});
+
+
+</script>
+</html>
