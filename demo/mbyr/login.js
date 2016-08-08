@@ -1,52 +1,66 @@
 var http = require('http');
 var querystring=require("querystring");
+var conf = require("./conf.json")
+var emitter = require("./event").emitter;
 
-/*输入参数 1.用户名 2.密码*/
-var arguments = process.argv.splice(2);
+var cookie ={};
+var byr_url =conf.byr_url;
+var headers = conf.headers;
 
-var reqData=querystring.stringify({
-    id:arguments[0],
-    passwd:arguments[1]
-});
-var byr_url = 'm.byr.cn';
-
-var options =
-{
-    hostname: byr_url,
-    port: 80,
-    method: 'POST',
-    path: '/user/login',
-    headers: {
-        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-        'Connection': "keep-alive",
-        'Content-Type': "application/x-www-form-urlencoded",
-        'Content-Length': reqData.length,
-        Host:byr_url,
-        'User-Agent':"Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36"
-    }
-};
-
-
-    var post_req = http.request(options, function (res) {
-        var responseText = "";
-        res.on('data', function (data) {
-            responseText += data;
-        });
+var make_option= function(reqData){
+    //console.log("make_option of mbyr_login");
+    var options =
+    {
+        hostname: byr_url,
+        port: 80,
+        method: 'POST',
+        path: '/user/login',
+        headers:{
+            "Accept":headers["Accept"],
+            "Connection":headers["Connection"],
+            "Content-Type":headers["Content-Type"],
+            "User-Agent":headers["User-Agent"],
+            "Host":headers["Host"],
+            "Content-Length":reqData.length
+        }
+    };
+    //console.log(options);
+    return options;
+}
+var make_req = function(options,callback){
+    return http.request(options, function (res) {
+        res.on('data', function (chunk) {
+            //console.log(chunk);
+        })
         res.on('end', function () {
-            cookie = res.headers["set-cookie"];
-            var datas = {};
-            for(var val in cookie){
-                var data  = cookie[val].split(";");
+            var datas = res.headers["set-cookie"];
+            for(var val in datas){
+                var data  = datas[val].split(";");
                 var temp = data[0].split("=");
-                datas[temp[0]]=temp[1];
+                cookie[temp[0]]=temp[1];
             }
-            cookie = datas;
-            console.log(cookie);
+            //console.log("get register cookie:");
+            //console.log(cookie);
+            emitter.emit("getCookie");
+            //console.log("send trigger : getCookie");
         });
-    });
+    },true);
+}
 
+var getCookie = function(name,password,callback){
+    /*输入参数 1.用户名 2.密码*/ //var arguments = process.argv.splice(2);
+    var reqData=querystring.stringify({
+        id:name,
+        passwd:password
+    });
+    var options = make_option(reqData);
+    var post_req = make_req(options,callback);
     post_req.write(reqData);
     post_req.end();
+}
+
+module.exports.getCookie =getCookie;
+module.exports.cookie =cookie;
 
 
 
